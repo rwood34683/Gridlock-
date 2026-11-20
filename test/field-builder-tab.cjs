@@ -240,14 +240,14 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.equal(await p.locator("#fieldbuild-map").count(),1,"Edit opens it again");assert.equal(await p.evaluate(()=>S.fieldEdit.key),key);
    assert.match(await p.locator(".assign").filter({hasText:"After park"}).innerText(),/EDITING/);
   });
-  for(const [w,h,wide] of [[390,844,false],[768,1024,true],[1180,820,true]])await check(`Field builder and Whiteboard at ${w}x${h}: ${wide?"the field fills the page beside a left pane":"the blocks stack"}`,async p=>{
+  for(const [w,h,wide] of [[390,844,false],[768,1024,true],[1180,820,true]])await check(`Field builder and Whiteboard at ${w}x${h}: ${wide?"the field fills the page beside a right pane":"the blocks stack"}`,async p=>{
    await p.evaluate(()=>set({tab:"more",more:"fields"}));
    await p.getByLabel("Name of the field").fill("Pane park");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();
    await p.evaluate(()=>document.querySelector(".main").scrollTo(0,0));
    const box=sel=>p.locator(sel).first().evaluate(e=>{const r=e.getBoundingClientRect();return {l:r.left,r:r.right,t:r.top,b:r.bottom,w:r.width,h:r.height};});
    const fb={f:await box("#fieldbuild-map svg"),rot:await box(".turn-next"),kinds:await box('[aria-label="Bunker to place"]'),done:await p.getByRole("button",{name:"Done",exact:true}).evaluate(e=>{const r=e.getBoundingClientRect();return {l:r.left,r:r.right,t:r.top,b:r.bottom};})};
    if(wide){
-    for(const k of ["rot","kinds","done"])assert.ok(fb[k].r<=fb.f.l+1,k+" stands in the pane left of the field");
+    for(const k of ["rot","kinds","done"])assert.ok(fb[k].l>=fb.f.r-1,k+" stands in the pane right of the field");
     assert.ok(fb.f.w>=w*.5,"the field takes most of the width: "+fb.f.w);assert.ok(fb.f.b<=h+1,"the whole field is on screen");
     assert.ok(fb.rot.t<fb.kinds.t&&fb.kinds.t<fb.done.t,"what is picked and Rotate lead the pane, then the bunkers, then Done");
     assert.ok(fb.done.b<=h,"Done is on screen without scrolling");
@@ -259,10 +259,10 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.deepEqual(await p.evaluate(()=>fieldOf(S.fieldEdit.key).bunkers.map(b=>[b.x,b.y])),[[40,60],[110,60]],"a tap on the fitted field still lands on its spot");
    await p.evaluate(()=>flash("A message while he builds."));
    const msg=await box("#root .flash"),fnow=await box("#fieldbuild-map svg");
-   if(wide)assert.ok(msg.r<=fnow.l+1,"a message stands over the pane, never on the field being tapped");
+   if(wide)assert.ok(msg.l>=fnow.r-1,"a message stands over the pane, never on the field being tapped");
    await p.evaluate(()=>set({more:"wb"}));await p.evaluate(()=>document.querySelector(".main").scrollTo(0,0));
    const wb={f:await box(".wb-wrap"),tools:await box(".wb-tools"),ink:await box("#wb-map"),pic:await box(".wb-bg svg")};
-   if(wide){assert.ok(wb.tools.r<=wb.f.l+1,"the pens stand in the pane left of the board");assert.ok(wb.f.b<=h+1,"the whole board is on screen");assert.ok(wb.f.w>=w*.45,"the board takes most of the width: "+wb.f.w);}
+   if(wide){assert.ok(wb.tools.l>=wb.f.r-1,"the pens stand in the pane right of the board");assert.ok(wb.f.b<=h+1,"the whole board is on screen");assert.ok(wb.f.w>=w*.45,"the board takes most of the width: "+wb.f.w);}
    else assert.ok(wb.tools.t>=wb.f.b-1,"on a phone the pens sit under the board");
    assert.ok(Math.abs(wb.ink.w-wb.pic.w)<1.5&&Math.abs(wb.ink.h-wb.pic.h)<1.5,"the ink layer is the picture's box");
    assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"no sideways scroll");

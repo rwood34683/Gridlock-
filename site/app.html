@@ -723,7 +723,7 @@ svg.field [data-pick]{-webkit-touch-callout:none;-webkit-user-select:none;user-s
 @container main (max-width:330px){.resultbar{flex-wrap:wrap}.resultbar .resultbar__none{order:3;flex:1 1 100%;width:auto;max-width:none;min-height:44px}}
 /* A studio page's field fills the screen right of its pane, so a message
    stands over the pane, never on the ground being tapped. */
-@media (min-width:732px){.flash.flash--pane{left:calc(16px + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)));right:auto;transform:none;animation:none;width:auto;max-width:clamp(208px, calc(30vw - 42px), 320px)}}
+@media (min-width:732px){.flash.flash--pane{left:auto;right:calc(16px + var(--safe-area-inset-right, env(safe-area-inset-right, 0px)));transform:none;animation:none;width:auto;max-width:clamp(208px, calc(30vw - 42px), 320px)}}
 .flash.flash--high{bottom:calc(158px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tally-chart{display:flex;flex-direction:column;gap:var(--s3)}
@@ -1064,16 +1064,16 @@ svg.field [data-pick]{cursor:crosshair}
 .studio__stack{display:flex;flex-direction:column;gap:var(--s3);min-width:0}
 .studio__field{min-width:0}
 @container main (min-width:700px){
-  /* Every control is a row of the left column, so the ones used on every tap
+  /* Every control is a row of the right column, where Tally's sheet stands, so the ones used on every tap
      — what is picked, Rotate, the bunkers, Done — lead the pane whatever
      block they sit in on a phone. */
   .main > .studio{max-width:none}
-  .studio{display:grid;grid-template-columns:clamp(240px,30%,320px) minmax(0,1fr);column-gap:var(--s4);row-gap:0;align-items:start}
+  .studio{display:grid;grid-template-columns:minmax(0,1fr) clamp(240px,30%,320px);column-gap:var(--s4);row-gap:0;align-items:start}
   .studio > .sec__head{grid-column:1 / -1;grid-row:1;margin-bottom:var(--s3)}
   .studio .studio__stack{display:contents}
-  .studio .studio__stack > *{grid-column:1;order:5;margin:0 0 var(--s3)}
+  .studio .studio__stack > *{grid-column:2;order:5;margin:0 0 var(--s3)}
   .studio .studio__stack > .pane-1{order:1} .studio .studio__stack > .pane-2{order:2} .studio .studio__stack > .pane-3{order:3} .studio .studio__stack > .pane-4{order:4}
-  .studio__field{grid-column:2;grid-row:2 / span 40;position:sticky;top:0}
+  .studio__field{grid-column:1;grid-row:2 / span 40;position:sticky;top:0}
   .studio__field svg.field{width:100%;height:auto;max-width:100%;max-height:max(240px, calc(100vh - 310px))}
   .studio__field .wb-wrap{width:min(100%, calc(max(240px, 100vh - 310px) * var(--field-aspect)));margin:0 auto}
   .studio__field .wb-bg svg.field{max-height:none}
@@ -6140,7 +6140,7 @@ function fieldsPage(){
 `;
   const count = mine.length ? mine.length + (mine.length === 1 ? " field" : " fields") : "";
   // Builder open: the field fills the page and every control stands in a
-  // pane on its left (owner, 20 Nov 2026); on a phone the same three blocks
+  // pane on its right (owner, 20 Nov 2026); on a phone the same three blocks
   // stack as before — controls, field, then Rotate and the buttons.
   if(open) return studio("Field builder", top + fb.a, fb.field, fb.b + tail, count);
   return sec("Field builder", top + fb + tail, count);
@@ -13890,7 +13890,7 @@ function sec(eyebrow, body, note){
 }
 /* A studio page (owner, 20 Nov 2026): Field builder and Whiteboard. On a wide
  * column the field fills the page and everything that runs it stands in a
- * pane on the left; on a phone the three blocks stack in reading order. */
+ * pane on the right, like Tally's sheet; on a phone the three blocks stack in reading order. */
 function studio(eyebrow, before, field, after, note){
   return `<section class="sec studio">
     <div class="sec__head"><h2 class="sec__eyebrow">${eyebrow}</h2>${note?`<span class="sec__note">${esc(note)}</span>`:""}</div>
@@ -20562,7 +20562,7 @@ const HELP = {
       "Tap a bunker to pick it, then Turn, move it or take it off. ↶ Undo takes back the last change; Clear all takes every bunker off (Undo brings them back). Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
       "Your bunker set is how many of each kind you have. It starts from the 58 the 2026 NXL fields use; change any number to match yours. The number on each bunker button counts down as you place them, and past your set it says how many over — it never stops you placing.",
       "Your fields is the drop-down of every field you built. Pick one, then Use this field or Edit. They are kept here, never in the event list. Scout's Share this field as a picture keeps a 10v10 field in a 4:3 picture, with its name below.",
-      "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. It saves as you go, so there is no Save button: Done puts the builder away and Edit opens it again. One ↻ Rotate button turns whatever its picture shows: the bunker you are about to place, or — tap one on the field to pick it — that bunker where it stands. On a tablet or computer the field fills the page and the controls stand in a pane on its left."],
+      "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. It saves as you go, so there is no Save button: Done puts the builder away and Edit opens it again. One ↻ Rotate button turns whatever its picture shows: the bunker you are about to place, or — tap one on the field to pick it — that bunker where it stands. On a tablet or computer the field fills the page and the controls stand in a pane on its right."],
     watch:"You place every bunker by eye, and the field says so. Sizes are the measured inflatables — never stretched. A field a sheet was played on cannot be deleted."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Pick a bunker and it says what the book knows about it: lanes clear from there, how often their five have planted on it, men lost at it — and one tap opens Sightlines standing in it.",

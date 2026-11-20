@@ -1841,7 +1841,8 @@ always one tap away.
 **Studio view** (owner, 20 Nov 2026): Field builder (while the builder is
 open) and Whiteboard are `studio(eyebrow, before, field, after, note)` pages.
 From 700 px of column (`@container main`) the field fills the page, sticky and
-fitted to the height, and every control stands in a pane on its left; the
+fitted to the height, and every control stands in a pane on its right, where
+Tally's sheet stands (owner, 20 Nov 2026: right, to match the other views); the
 section drops the 860 px column cap. The pane's rows are the children of the
 three blocks laid into one grid column (`display:contents`), ordered
 `.pane-1`…`.pane-4` first — what is picked, Rotate, the bunkers, the action
