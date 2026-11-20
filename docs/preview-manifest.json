@@ -1,10 +1,10 @@
 {
   "format": "gridlock-preview-manifest",
   "v": 1,
-  "sourceCommit": "f70f38689feee20d632d6567f4ec3b3aeb1bc7b6",
+  "sourceCommit": "b5c3e79f5ed17259fc2e9adc25e0330792ef7146",
   "sourceTrees": {
-    "web": "f73603b6816bd3753d514d219cce2504fcd73866",
-    "site": "b16b4870d4e506991ed092ac09a4617084f49c26"
+    "web": "c3906313e93d8247594c6793941cc4564174e9a3",
+    "site": "df9c071b73d59feb94c43442e276e8cc76d6cfa7"
   },
   "dirtyTracked": false,
   "edits": [
@@ -26,23 +26,23 @@
     "site/index.html": "1bc04d1004711b8c730b58d79a23f807cf0243ff2515bb870859da8c0b3d4198",
     "site/support.html": "31e73ad1034f23a5c9410e1ffe8857ff8da00c98f5f3092b2fb1bce47a51ea49",
     "site/privacy.html": "92612984b08359e979661c00bc4a0e5044662e21bc51bccf11ccc4a6eb62ce9b",
-    "web/index.html": "5696683e20660a919668c612b10e828c0197caa5cc49314bf3381f4fcd1c69e1"
+    "web/index.html": "76e17e9bebbb2df725e097cb51623554ba2e88f5914ef817f2994ab114f2d3ca"
   },
   "outputs": {
     "site/index.html": "32327f4d42318876be572a12f41cde22649155aeabb537fd634cd627318896a2",
     "site/support.html": "ae9234814f3a85b164c94c18462e783f34c52b3fb7cd9b54df20ad83e0eb5b8c",
     "site/privacy.html": "580c7d3f29d757fe1c90ee14a073fd2fd6405c547a6bc28035ab6a051251f79a",
-    "site/app.html": "467dc06f72ea0318222b63f91224137f820adb4d1c802faeeac854ac129b6555",
-    "artifact.html": "c961935a2247d693b3d42578b9ef65ac6dcc49bb6d4ce74d5e17bf7e58abbf6f",
-    "bytes": 3218841
+    "site/app.html": "e5f807918e095f09e60dbb74406322d8792450fec52b37f2e827560f35580893",
+    "artifact.html": "acdd592356e453fe626f6525911daeb186df427796208c3bb5a16ef269fe2c38",
+    "bytes": 3218895
   },
   "buildLog": "dist/preview/artifact.html: 3.07 MB; four embedded pages (Gridlock Coach)",
   "script": "f3076e15b8d65be6e3d7b78e20e45d7b0a20187caca4c53d89b15360101aa2ab",
   "packager": "scripts/package-preview.js",
-  "builtAt": "2026-11-20T01:55:51.445Z",
+  "builtAt": "2026-11-20T03:35:52.300Z",
   "published": {
     "url": "https://claude.ai/artifact/JoZQM9DA52jnHbKQJTu4UP",
-    "version": 205,
-    "versionId": "1795139746-4936"
+    "version": 206,
+    "versionId": "1795145747-5f7b"
   }
 }
