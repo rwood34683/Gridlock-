@@ -6,7 +6,9 @@ const DEVICES=vm.runInNewContext(fs.readFileSync(path.join(__dirname,"devices.js
 const SHOTS=path.resolve("work/field-10v10");fs.mkdirSync(SHOTS,{recursive:true});
 const hash=s=>crypto.createHash("sha256").update(s).digest("hex");
 const button=(p,name)=>p.getByRole("button",{name,exact:true});
-const go=(p,tab,more,extra={})=>p.evaluate(x=>{set(x);toMainTop();},{tab,more:more||null,...extra});
+// toMainTop() puts a new screen at its top a frame later; a point measured
+// before that lands is stale by however far the page then moved.
+const go=async(p,tab,more,extra={})=>{await p.evaluate(x=>{set(x);toMainTop();},{tab,more:more||null,...extra});await p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(r)))));};
 async function screen(p){
  const bad=await p.evaluate(()=>{
   const main=document.querySelector(".main"),bad=[];
@@ -132,7 +134,8 @@ async function makeField(p){
     const ink=await p.evaluate(()=>wbMarks().at(-1));assert(ink);assert(ink.pts.at(-1)[0]>198&&ink.pts.at(-1)[1]>148);
     const aligned=await p.evaluate(()=>{const a=document.querySelector(".wb-bg svg").getScreenCTM(),b=document.querySelector("#wb-map").getScreenCTM();return ["a","b","c","d","e","f"].every(k=>Math.abs(a[k]-b[k])<.01);});assert(aligned,"ink and field share the same screen transform");
     const box=await p.locator(".wb-wrap").boundingBox();assert(Math.abs((box.width-2)/(box.height-2)-428/336)<.02,"field plus wire margins");
-    if(width>=740)assert(Math.abs(box.width-Math.min(await p.locator(".main").evaluate(e=>e.clientWidth),Math.max(340,height-400)*428/336))<40,"tablet width uses its own aspect");
+    // Studio view (owner, 20 Nov 2026): the board fills the column right of its pane, fitted to the height.
+    if(width>=740)assert(Math.abs(box.width-Math.min(await p.locator(".studio__field").evaluate(e=>e.clientWidth),Math.max(240,height-310)*428/336))<40,"tablet width uses its own aspect");
     await button(p,"Blank").click();const blank=await p.locator(".wb-wrap").boundingBox();assert(Math.abs((blank.width-2)/(blank.height-2)-4/3)<.02,"blank board keeps the field's 4:3 shape");
    },p,errors);
    await check(label+" shared PNG is 4:3 and keeps the whole field",async()=>{
